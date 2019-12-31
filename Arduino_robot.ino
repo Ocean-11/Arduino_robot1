@@ -29,7 +29,7 @@ class motor_control
       required_pwm = 0;
     }
 
-    void update(float required_velocity, float current_velocity, float P, float D, float I)    
+    int update_PWM(float required_velocity, float current_velocity, float P, float D, float I, int motor_pin)    
     {
       int delta_pwm;
       float vel_diff;  
@@ -66,27 +66,25 @@ class motor_control
       // take into account the min PWM in which the wheels start to spin in the air!!!!!!!
     
       // Update the PWM
-      analogWrite(DRIVE_LEFT_FW,required_pwm);
-      //analogWrite(MOTOR_PWMF,120);
-  
-  
+      analogWrite(motor_pin,required_pwm);
+       
       // Update parameters
       prev_time = t;
       prev_velocity = current_velocity; 
   
       // Debug strings
-      Serial.print("Left Vel: ");
+      Serial.print("Vel: ");
       Serial.print(current_velocity);
       Serial.print(" PWM: ");
       Serial.println(required_pwm);
-  
-    } 
+    }  
 };
 
 motor_control motor_control_r = motor_control();
 motor_control motor_control_l = motor_control();
 
-void setup() {
+void setup() 
+{
 
   // Init odometry pins & timer3
   pinMode(ODO_RIGHT, INPUT_PULLUP);  // use pullup also for the no gear motor !! 
@@ -98,8 +96,7 @@ void setup() {
 
   // Init drive PWM timer4 to 31250
   TCCR4B=(TCCR2B&0xF8) | 1;
-  //TCCR2B = TCCR2B & 0b11111000 | 0x01;
- 
+  //TCCR2B = TCCR2B & 0b11111000 | 0x01; 
          
   // Init debug port
   Serial.begin(9600);
@@ -112,7 +109,16 @@ void setup() {
   lcd.begin(16, 2);
   //lcd.setCursor(0,1);
   //lcd.print("Hello         ");
- 
+
+  // Setup the servo
+  myservo.attach(HVLP_SERVO);
+
+  // Setup 2 US sensors
+  pinMode(US1_PING, OUTPUT);
+  pinMode(US1_ECHO, INPUT);
+  pinMode(US2_PING, OUTPUT);
+  pinMode(US2_ECHO, INPUT); 
+   
 }
 
 /*******************************************************************************
@@ -123,11 +129,31 @@ void loop()
 {
   uint32_t t = millis();
   static float current_right_vel = 0.0; 
-  static float current_left_vel = 0.0; 
-    
+  static float current_left_vel = 0.0;
+  static int print_counter = 0; 
+      
   // Call RPM controller
   if ((t-tTime[0]) >= (1000 / CONTROL_MOTOR_SPEED_FREQUENCY))
-  {  
+  { 
+    // decide if debug is required
+    print_counter++;
+    if (print_counter>100)
+    {
+      print_counter = 0;
+      /*Serial.print("right ticks: ");
+      Serial.println(odo_ticks_diff);
+      Serial.print("time diff us= ");
+      Serial.println(odo_time_diff_us);
+      Serial.print("motor vel= ");
+      Serial.println(motor_velocity_float);*/
+    } 
+      
+    // Poll the US sensors
+    us_measure(US1_PING, US1_ECHO);
+
+    // Poll the cliff sensors 
+    //CliffIRSensor();   
+ 
     // Poll motor odometry
     //current_velocity = calculateVelocity();
     current_right_vel = calculate_right_vel(current_right_vel);
@@ -137,18 +163,22 @@ void loop()
     //motor_control_r.update(float(req_velocity), current_right_vel, 5.0, 0.0, 0.0); 
     //motor_control_l.update(float(req_velocity), current_left_vel, 5.0, 0.0, 0.0); 
 
-    //PID_motor_control_r(float(req_velocity), current_right_vel, 5.0, 0.0, 0.0); 
-    //PID_motor_control_l(float(req_velocity), current_left_vel, 5.0, 0.0, 0.0); 
+    //PID_motor_control_r(float(req_velocity), current_right_vel, 5.0, 0.0, 0.0, DRIVE_RIGHT_FW); 
+    //PID_motor_control_l(float(req_velocity), current_left_vel, 5.0, 0.0, 0.0, DRIVE_LEFT_FW); 
     
     if (is_feeder_active)
     {
+      //motor_control_r.update_PWM(float(req_velocity), current_right_vel, 5.0, 0.0, 0.0,DRIVE_RIGHT_FW); 
+      //motor_control_l.update_PWM(float(req_velocity), current_left_vel, 5.0, 0.0, 0.0,DRIVE_LEFT_FW); 
       PID_motor_control_r(float(req_velocity), current_right_vel, 5.0, 0.0, 0.0); 
       PID_motor_control_l(float(req_velocity), current_left_vel, 5.0, 0.0, 0.0); 
+      myservo.write(hvlp_open_angle);
     }
     else
     {
       PID_motor_control_r(0.0, current_right_vel, 5.0, 0.0, 0.0); 
       PID_motor_control_l(0.0, current_left_vel, 5.0, 0.0, 0.0);
+      myservo.write(hvlp_close_angle);
     }
      
     tTime[0] = t;
@@ -169,6 +199,25 @@ void loop()
 /*******************************************************************************
 * Right PID motor control 
 *******************************************************************************/
+
+long us_measure(int pingPin, int echoPin)
+{
+  long duration, cm;
+   
+  // Send US ping - handle odo ISR interruptions!!!!!!
+  digitalWrite(pingPin, LOW);
+  delayMicroseconds(2);
+  digitalWrite(pingPin, HIGH);
+  delayMicroseconds(10);
+  digitalWrite(pingPin, LOW); 
+  
+  duration = pulseIn(echoPin, HIGH);
+  cm = microsecondsToCantimeters(duration);
+  Serial.print("cm, ");
+  Serial.println(cm);
+  return cm;  
+
+}
 
 void PID_motor_control_r(float required_velocity, float current_velocity, float P, float D, float I)
 {
@@ -214,7 +263,7 @@ void PID_motor_control_r(float required_velocity, float current_velocity, float 
   // take into account the min PWM in which the wheels start to spin in the air!!!!!!!
 
   // Update the PWM
-  analogWrite(DRIVE_RIGHT_FW,required_pwm);
+  analogWrite(DRIVE_RIGHT_FW,required_pwm); // try to use HPWM!!!!!!!!!
   //analogWrite(MOTOR_PWMF,120);
 
 
@@ -223,10 +272,10 @@ void PID_motor_control_r(float required_velocity, float current_velocity, float 
   prev_velocity = current_velocity; 
 
   // Debug strings
-  Serial.print("Right Vel: ");
+  /*Serial.print("Right Vel: ");
   Serial.print(current_velocity);
   Serial.print(" PWM: ");
-  Serial.println(required_pwm);
+  Serial.println(required_pwm);*/
 
 }
 
@@ -287,13 +336,40 @@ void PID_motor_control_l(float required_velocity, float current_velocity, float 
   prev_velocity = current_velocity; 
 
   // Debug strings
-  Serial.print("Left Vel: ");
+  /*Serial.print("Left Vel: ");
   Serial.print(current_velocity);
   Serial.print(" PWM: ");
-  Serial.println(required_pwm);
+  Serial.println(required_pwm);*/
 
 }
 
+
+void CliffIRSensor(void)
+{
+  
+   us_right = analogRead(CLIFF_RIGHT);// value from right sensor 
+   //us_left = analogRead(CLIFF_LEFT);// value from left sensor 
+
+   Serial.print("right analog read ");
+   Serial.println(us_right);
+   //Serial.print("left analog read ");
+   //Serial.println(ARL);
+   
+   /*if (ARR >= right_IR_val) // 7cm value
+    right_IR=false; // right ir sensor find deck
+    
+    else
+    right_IR=true; // right ir sensor find cliff
+    
+    if (ARL >= left_IR_val)  // 7cm value
+    left_IR=false; // left ir sensor find deck
+    
+    else
+    left_IR=true; // left ir sensor find cliff
+
+  }*/
+}
+    
 
 
 

@@ -3,19 +3,13 @@
 * Arduino robot
 **********************************************************************/
 
-
-
-/*********************************************************************
-* Arduino Robot
-* 
-**********************************************************************/
-
 #include "resources.h"
 #include "odometry.h"
 
 //#ifndef ROBOT_CONFIG_H_
 #define ROBOT_CONFIG_H_
 
+// Includes
 #include <Servo.h>
 #include <LiquidCrystal.h>
 #include <ros.h>
@@ -41,17 +35,17 @@
 #define DEG2RAD(x)                       (x * 0.01745329252)  // *PI/180
 #define RAD2DEG(x)                       (x * 57.2957795131)  // *180/PI
 
-#define MAX_REQ_VEL             25
-#define REQ_VEL_STEP            1
-#define MAX_SERVO_DELAY         2000
-#define SERVO_DELAY_STEP        200
+#define MAX_REQ_VEL              25
+#define REQ_VEL_STEP             1
+#define MAX_SERVO_DELAY          2000
+#define SERVO_DELAY_STEP         200
 
 // HVLP parameters
-#define HVLP_CLOSE_POS                   (uint32_t)120 // closed position angle (deg)
-#define HVLP_OPEN_POS                    (uint32_t)80 // open position angle (deg) - corresponds to 180deg
-#define HVLP_MAX                         (uint32_t)170
-#define HVLP_MIN                         (uint32_t)30
-#define HVLP_ANGLE_STEP                   5 
+#define HVLP_CLOSE_POS           (uint32_t)120 // closed position angle (deg)
+#define HVLP_OPEN_POS            (uint32_t)80 // open position angle (deg) - corresponds to 180deg
+#define HVLP_MAX                 (uint32_t)170
+#define HVLP_MIN                 (uint32_t)30
+#define HVLP_ANGLE_STEP          5 
 
 // Menu places
 #define MENU_REQ_VELOCITY        0
@@ -88,12 +82,12 @@ void print_on_screen(void);
 void get_button(void);
 void menu_handler(void);
 void update_screen(int);
-//void motor_control(int, int); 
 float calculate_right_vel(float);
 float calculate_left_vel(float);
 void odo_ISR_right(void);  
 void odo_ISR_left(void);  
-//void motor_control(float, float); 
+void CliffIRSensor(void); 
+void enable_odo_ISR(void);
 
 /*******************************************************************************
 * Declaration for GUI & menu
@@ -122,7 +116,7 @@ Servo myservo;  // create servo object to control a servo
 //Servo HVLP_servo;  // create servo object to control the HVLP servo
 uint8_t servo_angle = 0;
 int32_t hvlp_close_angle = HVLP_CLOSE_POS; 
-int32_t hvlp_open_angle = HVLP_CLOSE_POS;  
+int32_t hvlp_open_angle = HVLP_OPEN_POS;  
 
 /*******************************************************************************
 * Declaration for jig parameters
@@ -149,6 +143,31 @@ ros::Publisher odom_pub("odom", &odom);
 /*******************************************************************************
 * Declaration for motor controller
 *******************************************************************************/
+
+
+/*******************************************************************************
+* Declaration for US sensors
+*******************************************************************************/
+ long us1_cm;
+ long us2_cm;
+
+ long microsecondsToCantimeters(long microseconds) 
+ {
+  return microseconds / 29 / 2;
+}
+
+/*******************************************************************************
+* IR cliff sensor
+*******************************************************************************/
+
+// define cliff IR sensor TOF // 5V
+#define IR_7CM_VAL    400 // 5V, value for 7cm 
+
+float us_right = 0.0;// value from right sensor 
+float us_left = 0.0;// value from left sensor 
+bool right_IR = false;
+bool left_IR = false; 
+
 
 
 

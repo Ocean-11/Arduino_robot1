@@ -76,7 +76,7 @@ float calculate_right_vel(float prev_velocity)
     }    
   }
   
-   print_counter++;
+  print_counter++;
   if (print_counter>100)
   {
     print_counter = 0;
