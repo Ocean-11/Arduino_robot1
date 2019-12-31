@@ -31,6 +31,7 @@
 // Tasks frequencies
 #define CONTROL_MOTOR_SPEED_FREQUENCY          50   //hz
 #define LCD_FREQUENCY                          10   //hz
+#define DEBUG_PRINT_CYCLE                      100   // 50 = once a second
 
 #define DEG2RAD(x)                       (x * 0.01745329252)  // *PI/180
 #define RAD2DEG(x)                       (x * 57.2957795131)  // *180/PI

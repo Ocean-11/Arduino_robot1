@@ -130,34 +130,31 @@ void loop()
   uint32_t t = millis();
   static float current_right_vel = 0.0; 
   static float current_left_vel = 0.0;
-  static int print_counter = 0; 
+  static int print_counter = 0;
+  bool print_en = false; 
       
   // Call RPM controller
   if ((t-tTime[0]) >= (1000 / CONTROL_MOTOR_SPEED_FREQUENCY))
   { 
     // decide if debug is required
     print_counter++;
-    if (print_counter>100)
+    if (print_counter>DEBUG_PRINT_CYCLE)
     {
       print_counter = 0;
-      /*Serial.print("right ticks: ");
-      Serial.println(odo_ticks_diff);
-      Serial.print("time diff us= ");
-      Serial.println(odo_time_diff_us);
-      Serial.print("motor vel= ");
-      Serial.println(motor_velocity_float);*/
+      print_en = true;
+      Serial.println("--------------------------");
     } 
       
     // Poll the US sensors
-    us_measure(US1_PING, US1_ECHO);
+    us_measure(US1_PING, US1_ECHO, print_en);
 
     // Poll the cliff sensors 
-    //CliffIRSensor();   
+    cliff_IR_sensor(print_en);   
  
     // Poll motor odometry
     //current_velocity = calculateVelocity();
-    current_right_vel = calculate_right_vel(current_right_vel);
-    current_left_vel = calculate_left_vel(current_left_vel);
+    current_right_vel = calculate_right_vel(current_right_vel, print_en);
+    current_left_vel = calculate_left_vel(current_left_vel, print_en);
         
     // Activate motor control
     //motor_control_r.update(float(req_velocity), current_right_vel, 5.0, 0.0, 0.0); 
@@ -200,7 +197,7 @@ void loop()
 * Right PID motor control 
 *******************************************************************************/
 
-long us_measure(int pingPin, int echoPin)
+long us_measure(int pingPin, int echoPin, bool print_en)
 {
   long duration, cm;
    
@@ -213,8 +210,12 @@ long us_measure(int pingPin, int echoPin)
   
   duration = pulseIn(echoPin, HIGH);
   cm = microsecondsToCantimeters(duration);
-  Serial.print("cm, ");
-  Serial.println(cm);
+  if (print_en)
+  {
+    Serial.print("US1: ");
+    Serial.print(cm);
+    Serial.println("cm");
+  }
   return cm;  
 
 }
@@ -344,16 +345,23 @@ void PID_motor_control_l(float required_velocity, float current_velocity, float 
 }
 
 
-void CliffIRSensor(void)
+void cliff_IR_sensor(bool print_en)
 {
-  
-   us_right = analogRead(CLIFF_RIGHT);// value from right sensor 
-   //us_left = analogRead(CLIFF_LEFT);// value from left sensor 
 
-   Serial.print("right analog read ");
-   Serial.println(us_right);
-   //Serial.print("left analog read ");
-   //Serial.println(ARL);
+  int cliff_right;
+  int cliff_left;
+  
+ cliff_right = analogRead(CLIFF_RIGHT);// value from right sensor 
+ cliff_left = analogRead(CLIFF_LEFT);// value from left sensor 
+
+ if (print_en)
+ {
+   Serial.print("Cliff_r: ");
+   Serial.println(cliff_right);
+   Serial.print("Cliff_l: ");
+   Serial.println(cliff_left);
+ }
+   
    
    /*if (ARR >= right_IR_val) // 7cm value
     right_IR=false; // right ir sensor find deck

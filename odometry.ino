@@ -3,7 +3,7 @@
 * Calculate Velocity - rewrite as a class !!!!!
 *******************************************************************************/ 
 
-float calculate_right_vel(float prev_velocity)
+float calculate_right_vel(float prev_velocity, bool print_en)
 { 
   static unsigned long prev_odo_ticks = 0;
   static unsigned long prev_odo_time_us = 0;
@@ -76,22 +76,20 @@ float calculate_right_vel(float prev_velocity)
     }    
   }
   
-  print_counter++;
-  if (print_counter>100)
+  //print_counter++;
+  if (print_en)
   {
-    print_counter = 0;
-    Serial.print("right ticks: ");
-    Serial.println(odo_ticks_diff);
-    Serial.print("time diff us= ");
-    Serial.println(odo_time_diff_us);
-    Serial.print("motor vel= ");
+    //print_counter = 0;
+    Serial.print("Drive_r: ticks=");
+    Serial.print(odo_ticks_diff);
+    Serial.print(", vel= ");
     Serial.println(motor_velocity_float);
   } 
   return motor_velocity_float;
 }
 
 
-float calculate_left_vel(float prev_velocity)
+float calculate_left_vel(float prev_velocity, bool print_en)
 { 
   static unsigned long prev_odo_ticks = 0;
   static unsigned long prev_odo_time_us = 0;
@@ -164,15 +162,13 @@ float calculate_left_vel(float prev_velocity)
     }    
   }
   
-   print_counter++;
-  if (print_counter>100)
+  //print_counter++;
+  if (print_en)
   {
-    print_counter = 0;
-    Serial.print("left ticks: ");
-    Serial.println(odo_ticks_diff);
-    Serial.print("time diff us= ");
-    Serial.println(odo_time_diff_us);
-    Serial.print("motor vel= ");
+    //print_counter = 0;
+    Serial.print("Drive_l: ticks=");
+    Serial.print(odo_ticks_diff);
+    Serial.print(", vel= ");
     Serial.println(motor_velocity_float);
   } 
   return motor_velocity_float;
